@@ -1,0 +1,29 @@
+
+; Language
+&EN
+
+; SIS header: name, uid, version
+#{"calendarwidget"},(0x2002C35A),1,0,0
+
+; Localised Vendor name
+%{"Vendor"}
+
+; Unique Vendor name
+:"Vendor"
+
+; Manual PKG pre-rules from PRO files
+; Default HW/platform dependencies
+[0x101F7961],0,0,0,{"S60ProductID"}
+[0x102032BE],0,0,0,{"S60ProductID"}
+[0x102752AE],0,0,0,{"S60ProductID"}
+[0x1028315F],0,0,0,{"S60ProductID"}
+
+"/epoc32/release/armv5/urel/calendarwidgetplugin.dll"  - "c:/sys/bin/calendarwidgetplugin.dll"
+"/epoc32/data/z/private/20022F35/import/widgetregistry/2002C35A/calendarwidgetplugin.qtplugin"  - "c:/private/20022F35/import/widgetregistry/2002C35A/calendarwidgetplugin.qtplugin"
+"/epoc32/data/z/private/20022F35/import/widgetregistry/2002C35A/calendarwidgetplugin.manifest"  - "c:/private/20022F35/import/widgetregistry/2002C35A/calendarwidgetplugin.manifest"
+"/epoc32/data/z/private/20022F35/import/widgetregistry/2002C35A/calendarwidgetplugin.png"       - "c:/private/20022F35/import/widgetregistry/2002C35A/calendarwidgetplugin.png"
+"/epoc32/data/z/private/20022F35/import/widgetregistry/2002C35A/calendarwidgetplugin.xml"       - "c:/private/20022F35/import/widgetregistry/2002C35A/calendarwidgetplugin.xml"
+
+"/epoc32/release/armv5/urel/calendarwidgetinstaller.exe"                                  - "c:/sys/bin/calendarwidgetinstaller.exe", FR, RB, RW
+
+
