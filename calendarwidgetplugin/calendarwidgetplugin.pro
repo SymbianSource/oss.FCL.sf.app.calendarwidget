@@ -48,6 +48,7 @@ symbian: {
 
     LIBS += -lagendainterface
     LIBS += -lxqservice
+    LIBS += -lxqserviceutil
     LIBS += -lxqsettingsmanager
     LIBS += -lbafl
 

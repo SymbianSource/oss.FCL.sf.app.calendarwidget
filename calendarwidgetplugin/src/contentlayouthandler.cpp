@@ -139,6 +139,7 @@ ContentLayoutHandler::~ContentLayoutHandler()
         KCalPubSubCategory.iUid, key);
     mCalendarKeyManager->stopMonitoring(calendarKey);
     delete mCalendarKeyManager;
+    delete mDateObserver;
 }
 
 /*
@@ -266,6 +267,9 @@ void ContentLayoutHandler::updateLayout()
     setTimerForNextUpdate();
     //From DateIconLayoutHandler
     setCalendarIconContent();
+    
+    //test signal
+    emit calendarChanged();
 }
 
 /*
@@ -290,6 +294,9 @@ void ContentLayoutHandler::onThemeChange()
     }
     
     setLabelsColor();
+    //test results
+    mTestID = 1;
+    emit themeChanged();
 }
 
 /*
@@ -407,6 +414,8 @@ void ContentLayoutHandler::eventTimerExpired()
     LOGS("ContentLayoutHandler::eventTimerExpired");
     decorateContent();
     setTimerForNextUpdate();
+    //test signal
+    emit timerExpired();
 }
 
 /*
@@ -933,30 +942,17 @@ void ContentLayoutHandler::removeTodosFrom()
     }
 }
 
-void ContentLayoutHandler::handleOk(const QVariant& var)
-{
-    Q_UNUSED(var);
-
-    LOGS("ContentLayoutHandler::handleOk");
-    mTestResult = 0;
-    emit requestComplete();
-}
-
-void ContentLayoutHandler::handleError(int err, const QString& str)
-{
-    Q_UNUSED(str);
-
-    LOGS("ContentLayoutHandler::handleError");
-    mTestResult = err;
-    emit requestError();
-}
-
 void ContentLayoutHandler::highlightOn(QPointF &point)
 {
+    LOGS("ContentLayoutHandler::highlightOn");
     // --- Content layout ---
     
     if (mContainer) {
-        if (mContainer->sceneBoundingRect().contains(point)) {
+        //traslate the container rect to right position according to the scene
+        QRectF layoutRect( QPointF( mContainer->rect().topLeft().x() + mContainer->pos().x(), mContainer->rect().topLeft().y() + mContainer->pos().y() ), 
+                           QPointF( mContainer->rect().bottomRight().x() + mContainer->pos().x(), mContainer->rect().bottomRight().y() + mContainer->pos().y() ));
+        
+        if ( layoutRect.contains(point) ) {
             LOGS("[[[Highlight signal in Content area]]]");
             if (!mContentHighlightActive) {
                 HbFrameDrawer* highlightDrawer = new HbFrameDrawer(HIGHLIGHT_IMAGE_NAME,
@@ -975,7 +971,11 @@ void ContentLayoutHandler::highlightOn(QPointF &point)
     // TODO Don't highlight if already highlighted
    
     if (mIconContainer) {
-        if (mIconContainer->sceneBoundingRect().contains(point)) {
+        //traslate the container rect to right position according to the scene        
+        QRectF layoutRect( QPointF( mIconContainer->rect().topLeft().x() + mIconContainer->pos().x(), mIconContainer->rect().topLeft().y() + mIconContainer->pos().y() ), 
+                           QPointF( mIconContainer->rect().bottomRight().x() + mIconContainer->pos().x(), mIconContainer->rect().bottomRight().y() + mIconContainer->pos().y() ));
+        
+        if ( layoutRect.contains(point) ) {
             LOGS("[[[Highlight signal in dateicon area]]]");
             if (!mDateHighlightActive) {
                 HbFrameDrawer* highlightDrawer = new HbFrameDrawer(HIGHLIGHT_IMAGE_NAME,
@@ -996,8 +996,8 @@ void ContentLayoutHandler::highlightOn(QPointF &point)
 
 void ContentLayoutHandler::highlightOff()
 {
+    LOGS("ContentLayoutHandler::highlightOff");
     // --- Content layout ---
-    
     if (mContentHighlightActive) {
         QGraphicsItem* background1 = mContainer->backgroundItem();
         if (background1) {
@@ -1037,22 +1037,6 @@ int ContentLayoutHandler::testId()
 void ContentLayoutHandler::setTestId(int testID)
 {
     mTestID = testID;
-}
-
-/*
- * ContentLayoutHandler::testResult()
- */
-int ContentLayoutHandler::testResult()
-{
-    return mTestResult;
-}
-
-/*
- * ContentLayoutHandler::setTestResult
- */
-void ContentLayoutHandler::setTestResult(int testResult)
-{
-    mTestResult = testResult;
 }
 
 /*

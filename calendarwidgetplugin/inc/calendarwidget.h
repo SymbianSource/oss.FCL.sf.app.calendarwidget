@@ -211,9 +211,13 @@ private:
 private: // data
     Q_DISABLE_COPY(CalendarWidget)
     QTranslator* mCommonTranslator;
+    bool mWidgetLoaded;
     
     //For documentation purpose
     ContentLayoutHandler* mContent;
+    //to get the widget shape
+    HbLabel* mWidgetBackground;
+    HbLabel* mIconLabel;
 };
 
 #endif // CALENDARWIDGET_H

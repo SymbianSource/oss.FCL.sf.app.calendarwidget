@@ -131,8 +131,12 @@ void ContentLayoutGesture::addGesture(QList<QString> parameters, QString& gestur
  */
 void ContentLayoutGesture::onTap(QPointF& point)
 {
-    LOGS("ContentLayoutGesture::launchApplication");
-	if (mLayout->sceneBoundingRect().contains(point)) {
+    LOGS("ContentLayoutGesture::onTap");
+    //traslate the container rect to right position according to the scene
+    QRectF layoutRect( QPointF( mLayout->rect().topLeft().x() + mLayout->pos().x(), mLayout->rect().topLeft().y() + mLayout->pos().y() ), 
+                       QPointF( mLayout->rect().bottomRight().x() + mLayout->pos().x(), mLayout->rect().bottomRight().y() + mLayout->pos().y() ));
+	
+    if ( layoutRect.contains(point) ) {
         if (mTapAction == "launchApplication") {
             launchApplication(mTapParameters, mTapParametersType);
             mTestID = 1;
@@ -157,6 +161,10 @@ void ContentLayoutGesture::launchApplication( QList<QString> parameters, QList<Q
     if (request == NULL) {
         return;
     }
+    
+    XQRequestInfo options;
+    options.setForeground(true);
+    request->setInfo(options);
 
     // Connect result handling signal
     connect(request, SIGNAL(requestOk(const QVariant&)), this, SLOT(handleOk(const QVariant&)));

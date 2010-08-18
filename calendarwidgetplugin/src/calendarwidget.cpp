@@ -49,6 +49,11 @@ const char DOCML[] = ":/CalendarWidget";
 
 #define CALWIDGET_HIGHLIGHT_ACTIVE
 
+namespace {
+    const char *WIDGET_BACKGROUND = "widgetBackground";
+    const char *ICON_LABEL = "iconLabel";  
+}
+
 // ======== MEMBER FUNCTIONS ========
 
 /*
@@ -62,6 +67,7 @@ CalendarWidget::CalendarWidget(QGraphicsItem* parent, Qt::WindowFlags flags)
     grabGesture(Qt::PanGesture);
     grabGesture(Qt::PinchGesture);
     grabGesture(Qt::SwipeGesture);
+    mWidgetLoaded = false;
 }
 
 /*
@@ -77,7 +83,6 @@ CalendarWidget::~CalendarWidget()
  */
 QRectF CalendarWidget::boundingRect() const
 {
-    LOGS("CalendarWidget::boundingRect");
     return childrenBoundingRect();
 }
 
@@ -86,10 +91,21 @@ QRectF CalendarWidget::boundingRect() const
  */
 QPainterPath CalendarWidget::shape() const
 {
-    LOGS("CalendarWidget::shape");
-
     QPainterPath path;
-    path.addRect(boundingRect());
+    if( !mWidgetLoaded ) {
+        path.addRect(boundingRect());
+    }
+    else {
+        QRectF layoutRect( QPointF( mWidgetBackground->rect().topLeft().x() + mWidgetBackground->pos().x(), mWidgetBackground->rect().topLeft().y() + mWidgetBackground->pos().y() ), 
+                           QPointF( mWidgetBackground->rect().bottomRight().x() + mWidgetBackground->pos().x(), mWidgetBackground->rect().bottomRight().y() + mWidgetBackground->pos().y() ));
+        path.addRoundRect( layoutRect, 15 );
+		//the icon path is adjusted because the icon is slightly smaller than the container
+        path.moveTo( QPointF( mIconLabel->pos().x() + 3, mWidgetBackground->pos().y() ) );
+        path.lineTo( QPointF( mIconLabel->pos().x() + 3, mIconLabel->pos().y() + 8 ) );
+        path.lineTo( QPointF( mIconLabel->rect().topRight().x() + mIconLabel->pos().x() - 3, mIconLabel->pos().y() + 8 ) );
+        path.lineTo( QPointF( mIconLabel->rect().bottomRight().x() + mIconLabel->pos().x() - 3, mWidgetBackground->pos().y() ) );
+    }
+        
     return path;
 }
 
@@ -102,11 +118,15 @@ bool CalendarWidget::loadWidget()
 
     // Use document loader to load the contents
     HbDocumentLoader loader;
-    bool loaded = true;
+    mWidgetLoaded = true;
     bool ok = false;
     loader.load(DOCML, &ok);
 
     if (ok) {
+        //load the containers that are necessary to get the shape
+        mWidgetBackground = qobject_cast<HbLabel*>( loader.findWidget( WIDGET_BACKGROUND ) );
+        mIconLabel = qobject_cast<HbLabel*>( loader.findWidget( ICON_LABEL ) );
+
         QObject* contentLayoutHandler = new ContentLayoutHandler();
         connectLayoutHandler(this, contentLayoutHandler, loader);
         
@@ -136,14 +156,14 @@ bool CalendarWidget::loadWidget()
             setLayout(dynamic_cast<QGraphicsLinearLayout*>(contentLayoutHandler));
         }
         else {
-            loaded = false;
+            mWidgetLoaded = false;
         }    
     }
     else {
-        loaded = false;
+        mWidgetLoaded = false;
     }
     
-    return loaded;
+    return mWidgetLoaded;
 }
 
 /*
@@ -299,7 +319,7 @@ bool CalendarWidget::eventFilter(QObject *obj, QEvent *event)
 //        emit mousePressed(pos);
     }
     else if (event->type() == QEvent::GraphicsSceneMouseRelease) {
-//        emit mouseReleased();
+        emit mouseReleased();
     }
     return false;
 }
@@ -311,18 +331,17 @@ void CalendarWidget::gestureEvent(QGestureEvent *event)
 {
     LOGS("CalendarWidget::gestureEvent");
     if (QTapGesture *tap = (QTapGesture*)event->gesture(Qt::TapGesture)) {
-        //QPointF pos = mapFromScene(event->mapToGraphicsScene(tap->position()));
-        QPointF pos = tap->position();
+        QPointF posFromScene = mapFromScene(event->mapToGraphicsScene(tap->position()));
         switch(tap->state()) {
             case Qt::GestureStarted:
-                emit mousePressed(pos);
+                emit mousePressed(posFromScene);
                 LOGS("CalendarWidget::gestureEvent => gestureStarted");
                 break;
             case Qt::GestureUpdated:
                 LOGS("CalendarWidget::gestureEvent => gestureUpdated");
                 break;
             case Qt::GestureFinished:
-                emit tapGesture(pos);
+                emit tapGesture(posFromScene);
                 emit mouseReleased();
                 LOGS("CalendarWidget::gestureEvent => gestureFinished");
                 break;
@@ -344,8 +363,8 @@ void CalendarWidget::gestureEvent(QGestureEvent *event)
         }
     }
         
-    if (QSwipeGesture *pan = (QSwipeGesture*)event->gesture(Qt::SwipeGesture)) {
-        switch (pan->state()) {
+    if (QSwipeGesture *swipe = (QSwipeGesture*)event->gesture(Qt::SwipeGesture)) {
+        switch (swipe->state()) {
             case Qt::GestureFinished:
                 emit mouseReleased();
                 break;
@@ -354,8 +373,8 @@ void CalendarWidget::gestureEvent(QGestureEvent *event)
         }
     }
 
-    if (QPinchGesture *pan = (QPinchGesture*)event->gesture(Qt::PinchGesture)) {
-        switch (pan->state()) {
+    if (QPinchGesture *pinch = (QPinchGesture*)event->gesture(Qt::PinchGesture)) {
+        switch (pinch->state()) {
             case Qt::GestureFinished:
                 emit mouseReleased();
                 break;

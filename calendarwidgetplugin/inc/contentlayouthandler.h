@@ -64,7 +64,6 @@ class ContentLayoutHandler: public QObject, public QGraphicsLinearLayout
 {
     Q_OBJECT
     Q_PROPERTY(int testID READ testId WRITE setTestId)
-    Q_PROPERTY(int testResult READ testResult WRITE setTestResult)
 
 public:
     /*! 
@@ -94,18 +93,6 @@ public:
         Used to set which test it needs to run.
      */
     void setTestId(int testID);
-    /*! 
-        \fn int ContentLayoutHandler::testResult()
-        
-        Used to check whether the calendar has been launched correctly or not.
-     */
-    int testResult();
-    /*! 
-        \fn void ContentLayoutHandler::setTestResult(int testResult)
-        
-        Used to set the test property.
-     */
-    void setTestResult(int testResult);
 
 signals:
      /*! 
@@ -135,6 +122,11 @@ signals:
         Emitted when the date has changed.
      */        
     void dateChanged();
+    
+    //test signals
+    void calendarChanged();
+    void timerExpired();
+    void themeChanged();
 
 public slots:
     /*! 
@@ -175,21 +167,6 @@ public slots:
         theme graphics into the widget.
     */
     void onThemeChange();
-    /*! 
-        \fn void ContentLayoutHandler::handleOk(const QVariant& var)
-        
-        Connected to XQSettingsManager valueChanged signal. Called if the calendar has been launched correctly.
-        @param var operation returning value
-    */
-    void handleOk(const QVariant& var);
-    /*! 
-        \fn void ContentLayoutHandler::handleError(int err, const QString& str)
-        
-        Connected to XQSettingsManager valueChanged signal. Called if the calendar has not been launched correctly.
-        @param err Error code
-        @param str Explanation of the error
-    */
-    void handleError(int err, const QString& str);
     /*! 
         \fn void ContentLayoutHandler::highlightOn(QPointF& point)
         
