@@ -64,6 +64,8 @@ symbian: {
     pluginstub.path = $$PLUGIN_SUBDIR
 
     DEPLOYMENT += pluginstub
+    
+    MMP_RULES += SMPSAFE
 
     qtplugins.path = $$PLUGIN_SUBDIR
     qtplugins.sources += qmakepluginstubs/$${TARGET}.qtplugin

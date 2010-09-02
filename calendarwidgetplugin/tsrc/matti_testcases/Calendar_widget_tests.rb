@@ -26,29 +26,17 @@ include MobyUtil
 include MattiVerify 
 @@z_index = ""
 
+
 Parameter.instance.load_parameters_xml(File.expand_path(File.dirname(__FILE__)) + '/testdata/calendar_widget_test_script_parameters.xml') 
     
 class TestClassCalendarWidget < Test::Unit::TestCase
-    
-
-##  def initialize (args)
-##	super(args)
-##	@sut = MATTI.sut(:Id => 'sut_s60_qt')
-##	#@sut = MATTI.sut(:Id => 's60')
-##	begin		
-##		#check_phone_date
-##		#check_phone_time
-##		#if @sut.application.test_object_exists?("HbTextItem", {:text => 'Continue', :__timeout => 2})
-##		#	@sut.application( :name => 'ftulanguage' ).HbTextItem(:text => 'Continue').tap
-##		#end
-##		#@sut.press_key(:kEnd)
-##		@sut.application( :name => 'qttasserver' ).press_key(:kApp)
-##	rescue Exception => ex
-##		puts "INITIALIZE FAILED. ERROR:"
-##		puts ex.message
-##		puts "*************************"
-##	end
-##  end
+  
+  @HS_count = 0
+  @day = 0
+  @month = 0
+  @year = 0
+  @hourformat_12 = true
+  
   def initialize (args)
 	super(args)
 	# MANDATORY DEFINITION: Define device "suts" which are used in testing, remember defined [ut] name in matti_parameters.xml
@@ -86,11 +74,20 @@ class TestClassCalendarWidget < Test::Unit::TestCase
 			puts "*************************"
 		end
 	end
-  #@real_phone_number = "02722990"
+	#app = @sut.application(:name => 'hsapplication')
+    #identificator = TestObjectIdentificator.new(:type => :HsPageVisual)
+	#xml =  app.HsIdleWidget.HbWidget( :__index =>2 ).xml_data 
+	#element_set = xml.xpath( xpath = identificator.get_xpath_to_identify( xml ) ) 
+	#@HS_count = element_set.size
+	@HS_count = 4
+	@hourformat_12 = true
+	#puts "initialize @hourformat_12 = " + @hourformat_12.to_s
+	#puts "initialize @HS_count = " + @HS_count.to_s
+  #@HS_count = 0
   #@widget_name = "Contact widget."
   #@@contact_array = Array.new() 
   end 
-  
+    
   def teardown
 	puts "teardown actions"
 	begin
@@ -99,10 +96,7 @@ class TestClassCalendarWidget < Test::Unit::TestCase
 		app_name = (app_name == 'tsapplication') ? 'hsapplication' : app_name
 		if @sut.application(:name => app_name).test_object_exists?("HbIconItem", {:iconName => 'qtg_mono_applications_all', :__timeout => 2})
 			navigate_to_first_homescreen
-			if @sut.application(:name => app_name).test_object_exists?("HbWidget",{:name => 'CalendarWidget'}) then
-				remove_calendar_widget_from_homescreen(0)
-			end
-			delete_calendar_events(@sut.application(:name => app_name))
+			delete_calendar_events_via_UI
 		else
 			app = @sut.application.executable_name
 			app_name = app.split(".exe")[0].to_s
@@ -129,10 +123,7 @@ class TestClassCalendarWidget < Test::Unit::TestCase
 			app_name = app.split(".exe")[0].to_s
 			app_name = (app_name == 'tsapplication') ? 'hsapplication' : app_name
 			navigate_to_first_homescreen
-			if @sut.application(:name => app_name).test_object_exists?("HbWidget",{:name => 'CalendarWidget'}) then
-				remove_calendar_widget_from_homescreen(0)
-			end
-			delete_calendar_events(@sut.application(:name => app_name))
+			delete_calendar_events_via_UI
 		end
 	rescue Exception => ex
 		puts "TEARDOWN FAILED. ERROR:"
@@ -148,12 +139,8 @@ class TestClassCalendarWidget < Test::Unit::TestCase
 				puts "Reboot is done!!"
 				app_name = @sut.application.executable_name.split(".exe")[0].to_s
 				puts "Application on the screen is " + app_name
-				#lets see that there is not any calendar widget on the homescreen
 				navigate_to_first_homescreen
-				if @sut.application(:name => app_name).test_object_exists?("HbWidget",{:name => 'CalendarWidget'}) then
-					remove_calendar_widget_from_homescreen(0)
-				end
-				delete_calendar_events(@sut.application(:name => app_name))
+				delete_calendar_events_via_UI
 			end
 		rescue Exception => e
 			puts "TEARDOWN BEGIN-RESCUE FAILED. ERROR:"
@@ -161,22 +148,30 @@ class TestClassCalendarWidget < Test::Unit::TestCase
 			puts "*************************"
 		end
 	end		
-	#begin
-	#	navigate_to_first_homescreen
-	#	if @sut.application(:name => 'hsapplication').test_object_exists?("HbWidget",{:name => 'CalendarWidget'}) then
-	#		remove_calendar_widget_from_homescreen
-	#	end
-	#rescue
-	#end 
-	#delete_calendar_events(@sut.application(:name => 'hsapplication'))
   end # teardown
   
+    ########################################################################################################################################
+	#
+	#	add_calendar_widget_to_homescreen
+	#
+	#	description:
+	#		This function adds calendar widget to Home screen via application list
+	#
+	#	preconditions: 
+	#
+	#	parameters:
+	#		
+	#
+	#	created: Jarno Mäkelä
+	#	creation date: 18-May-2010
+	#
+	########################################################################################################################################
+	
   def add_calendar_widget_to_homescreen(app, browse_to_list)
 	#selects calendar widget from applications-menu and adds it to home screen
 	#Lets calculate, how many application list items there is seen
-
 	identificator = TestObjectIdentificator.new(:type => :HsListViewItem)
-	xml =  app.HbListView( :name => 'allAppsListView' ).xml_data 
+	xml =  app.HbListView( :name => 'listView' ).xml_data 
 	element_set = xml.xpath( xpath = identificator.get_xpath_to_identify( xml ) ) 
 	item_count = element_set.size
 	#puts "item_count = ",item_count
@@ -184,9 +179,6 @@ class TestClassCalendarWidget < Test::Unit::TestCase
 	#lets check if calendar widget is visible on display. If not, we flick until we get it visible
 	while item_index < item_count
 		if app.test_object_exists?("HbTextItem",{:text => 'CalendarWidget',:visibleOnScreen => 'true'}) then
-			#app.HbTextItem(:__index => item_index-1).tap_down
-			#app.HbTextItem(:__index => item_index-1).flick(:Up)
-			#app.HbListViewItem(:text => 'Bedrock').gesture(:Up,1,450,:Left,true)
 			if browse_to_list == 'longpressHS' then
 				app.HbTextItem(:text => 'CalendarWidget').tap
 			else
@@ -196,8 +188,6 @@ class TestClassCalendarWidget < Test::Unit::TestCase
 			end
 			break
 		else
-			#app.HbTextItem(:__index => item_index-1).tap_down
-			#app.HbListViewItem(:__index => item_index-1).flick(:Up)
 			app.HsListViewItem(:__index => item_index-1).gesture(:Up,1,550,{:Left,true})
 		end
 		item_index +=2
@@ -211,224 +201,9 @@ class TestClassCalendarWidget < Test::Unit::TestCase
 		end
 	end
 
-	if browse_to_list != 'longpressHS' then
-		app.HbIconItem(:iconName => 'qtg_mono_back').tap
-	end
-	#verify, that there exists calendar widget in homescreen
-	#verify(){app.HbWidget( :name => 'CalendarWidget' )}
-  end
-  
-    ########################################################################################################################################
-	#
-	#	remove_calendar_widget_from_homescreen
-	#
-	#	description:
-	#		This function emoves calendar widget from homescreen
-	#
-	#	preconditions: 
-	#		-Phone is in homescreen and there is calendar widget in HS
-	#	parameters:
-	#		hs_pagenumber:	Number of the homescreen page (0, 1 or 2)
-	#
-	#	created: Jarno Mäkelä
-	#	creation date: 17-May-2010
-	#
-	########################################################################################################################################
-	
-  def remove_calendar_widget_from_homescreen(hs_pagenumber)
-	app = @sut.application(:name => 'hsapplication')
-	#verify(){@sut.application.HbIconItem(:iconName => 'hs_applib_button.png')}
-	#verify(){app.HbWidget( :name => 'CalendarWidget' )}
-	#find correct widget host object
-	calendar_widget_object = app.HsPage(:__index => hs_pagenumber).find(:name => 'CalendarWidget')
-	#app.HsPage(:__index => hs_pagenumber).HsWidgetHost.HsCalendarWidget.HbWidget( :name => 'CalendarWidget' ).tap_down
-	calendar_widget_object.tap_down
-	#app.HbWidget( :name => 'controlLayer' ).HsWidgetHost.HbWidget( :name => 'CalendarWidget' ).tap_down
-	#app.HbWidget( :name => 'controlLayer' ).HsWidgetHost.HbWidget( :name => 'CalendarWidget' ).drag_to_object(app.HsTrashBinWidget( :name => 'trashBin' ))
-	calendar_widget_object = app.HbWidget( :name => 'controlLayer' ).find(:name => 'CalendarWidget')
-	calendar_widget_object.drag_to_object(app.HsTrashBinWidget( :name => 'trashBin' ))
-  end
-  
-    ########################################################################################################################################
-	#
-	#	create_calendar_event
-	#
-	#	description:
-	#		This function creates calendar event via fixture  
-	#
-	#	preconditions: 
-	#
-	#	parameters:
-	#		-subject:			subject of the meeting
-	#		-start_day:	    	start day of the meeting
-	#		-start_month:		start month of the meeting
-	#		-start_year:		start year of the meeting
-	#		-start_hour:		start hour of the meeting
-	#		-start_minute:		start minute of the meeting
-	#		-duration_days: 	duration of the days, that meeting is lasting
-	#		-duration_hours:	duration of the hours, that meeting is lasting
-	#		-duration_minutes:	duration of the minutes, that meeting is lasting
-	#
-	#	return value:
-	#		-time_to_verify:	time, that is supposed to be in the calendar widget (Format: hh:mm-hh:mm or hh:mm (am/pm)-hh:mm (am/pm))
-	#
-	#	created: Jarno Mäkelä
-	#	creation date: 17-May-2010
-	#
-	########################################################################################################################################
-	
-  def create_calendar_event(app, subject,start_day, start_month, start_year, start_hour, start_minute, duration_days, duration_hours, duration_minutes)
-	#Creates calendar event
-	#let's calculate the real values of start date. In parameters, eg. the day value can exceed 31, so we need to change month and set day
-	#to 1. Same calculation needed for other parameter values
-	start_date = calculate_date(start_day, start_month, start_year, start_hour, start_minute)
-	puts "start_date:",start_date.to_s
-	start_time_split = (start_date.to_s).split
-	start_time = start_time_split[1]
-	start_time_to_verify = start_time[0..4]
-	puts "start_time_to_verify:",start_time_to_verify
-	end_date = calculate_date(start_day+duration_days, start_month, start_year, start_hour+duration_hours, start_minute+duration_minutes)
-	puts "end_date:",end_date.to_s
-	end_time_split = (end_date.to_s).split
-	end_time = end_time_split[1]
-	end_time_to_verify = end_time[0..4]
-	puts "end_time_to_verify:",end_time_to_verify
-	if @hourformat_12 == true then
-		#12 hour time used
-		time_to_verify = convert_time_to_12hour_format(start_time_to_verify)+'-'+convert_time_to_12hour_format(end_time_to_verify)
-	else
-		#24 hour time used
-		time_to_verify = start_time_to_verify+'-'+end_time_to_verify
-	end
-	tmp_id = app.id
-	tmp = @sut.execution_order
-	@sut.execution_order = ['S60']
-	app.apply_behaviour!( :name => 'S60Fixture' )
-	app.set_application_id(app.attribute('applicationUid'));
-	response = app.fixture('tapi_calendar_fixture', 'add_meeting', {:description =>  subject, :start_date => start_date, :end_date => end_date})
-	@sut.execution_order = tmp
-	app.apply_behaviour!( :name => 'QtFixture' ) 
-	app.set_application_id(tmp_id)
-	response
-	#let's put date if event is in other future day than today
-	if start_day > @day.to_i then
-	   start_date = start_time_split[0]
-	   month_text = case start_date[3..4]
-			when "01" then "Jan"
-			when "02" then "Feb"
-			when "03" then "Mar"
-			when "04" then "Apr"
-			when "05" then "May"
-			when "06" then "Jun"
-			when "07" then "Jul"
-			when "08" then "Aug"
-			when "09" then "Sep"
-			when "10" then "Oct"
-			when "11" then "Nov"
-			when "12" then "Dec"
-		end
-		puts "time_to_verify:", start_date[0..1]+' '+month_text+' '+time_to_verify
-		return start_date[0..1]+' '+month_text+' '+time_to_verify
-	else
-		puts "time_to_verify:", time_to_verify
-		return time_to_verify
-	end
-	#sut = MATTI.sut(:Id => 's60')
-	#app = sut.run(:name => "HtiAdmin.exe")
-	#app.fixture('tapi_calendar_fixture', 'add_meeting', {:description =>  subject, :start_date => '17-05-2010 15:00:00', :end_date => '17-05-2010 16:00:00'})
-	#app.fixture('tapi_calendar_fixture', 'add_meeting', {:description =>  subject, :start_date => start_date, :end_date => end_date})
-	#app.close()
-  end
-  
-    ########################################################################################################################################
-	#
-	#	convert_time_to_12hour_format
-	#
-	#	description:
-	#		This function converts 24 hour time to 12 hour time format
-	#
-	#	preconditions: 
-	#
-	#	parameters:
-	#		-conv_timestr:				time string that is needed to convert
-	#
-	#	return value:
-	#		correctly converted time string
-	#
-	#	created: Jarno Mäkelä
-	#	creation date: 25-May-2010
-	#
-	########################################################################################################################################
-	
-  def convert_time_to_12hour_format(conv_timestr)
-	#let's first check the hour
-	hour = conv_timestr[0..1].to_i
-	#puts "hour:", hour
-	if hour >= 12 then
-		if hour == 12 then
-			return hour.to_s+':'+conv_timestr[3..4]+' pm'
-		else
-			hour = hour -12
-			if hour < 10 then
-				return '0'+hour.to_s+':'+conv_timestr[3..4]+' pm'
-			else
-				return hour.to_s+':'+conv_timestr[3..4]+' pm'
-			end
-		end
-	else
-		if hour == 0 then
-			hour = 12
-			return hour.to_s+':'+conv_timestr[3..4]+' am'
-		elsif hour < 10 then
-			return '0'+hour.to_s+':'+conv_timestr[3..4]+' am'
-		else
-			return hour.to_s+':'+conv_timestr[3..4]+' am'
-		end
-	end
-  end
-  
-    ########################################################################################################################################
-	#
-	#	delete_calendar_events
-	#
-	#	description:
-	#		This function deletes all calendar events via fixture  
-	#
-	#	preconditions: 
-	#
-	#	parameters:
-	#		-app:				application needed
-	#
-	#	created: Jarno Mäkelä
-	#	creation date: 19-May-2010
-	#
-	########################################################################################################################################
-	
-  def delete_calendar_events(app)
-	tmp_id = app.id
-	tmp = @sut.execution_order
-	@sut.execution_order = ['S60']
-	app.apply_behaviour!( :name => 'S60Fixture' )
-	app.set_application_id(app.attribute('applicationUid'));
-	response = app.fixture('tapi_calendar_fixture', 'delete_all', {})
-	@sut.execution_order = tmp
-	app.apply_behaviour!( :name => 'QtFixture' ) 
-	app.set_application_id(tmp_id)
-	response
-  end
-  
-  def create_calendar_event_via_calendar(subject)
-	#Creates calendar event
-	cal_app = @sut.run(:name => "calendar.exe")
-	cal_app.HbIconItem(:iconName => 'qtg_mono_options_menu').tap
-	cal_app.HbTextItem(:text => 'New event')
-	#Add the subject
-	cal_app.HbDataFormViewItem(:__index =>0).HbWidget.tap
-	cal_app.HbDataFormViewItem(:__index =>0).HbWidget.type_text(subject)
-	cal_app.HbTextItem(:text => 'Subject').tap
-	#Add start time
-	cal_app.CalenEditorCustomItem(:__index=>0).HbWidget.HbPushButton(:__index=>0).tap
-	
+	#if browse_to_list != 'longpressHS' then
+	#	app.HbIconItem(:iconName => 'qtg_mono_back').tap
+	#end
   end
   
     ########################################################################################################################################
@@ -456,19 +231,10 @@ class TestClassCalendarWidget < Test::Unit::TestCase
 	puts "date is: ",date
 	#parse day,month and year
 	@day = date[4..5]
-	#@day = (date.day).to_s
-	#if @day.to_i < 10 then
-		#@day = '0'+ (date.day).to_s
-	#end
 	puts "day:", @day
 	@month = date[7..8]
-	#@month = (date.month).to_s
-	#if @month.to_i < 10 then
-	#	@month = '0'+ (date.month).to_s
-	#end
 	puts "month:", @month
 	@year = date[10..13]
-	#@year = (date.year).to_s
 	puts "year:",@year
 	clock_app.close
   end
@@ -588,11 +354,55 @@ class TestClassCalendarWidget < Test::Unit::TestCase
 	else
 		returnhour = hour.to_s
 	end
-	
 	return returnday,'-',returnmonth,'-',year.to_s,' ',returnhour,':',returnminute,':00'
-	
   end
   
+    ########################################################################################################################################
+	#
+	#	convert_time_to_12hour_format
+	#
+	#	description:
+	#		This function converts 24 hour time to 12 hour time format
+	#
+	#	preconditions: 
+	#
+	#	parameters:
+	#		-conv_timestr:				time string that is needed to convert
+	#
+	#	return value:
+	#		correctly converted time string
+	#
+	#	created: Jarno Mäkelä
+	#	creation date: 25-May-2010
+	#
+	########################################################################################################################################
+	
+  def convert_time_to_12hour_format(conv_timestr)
+	hour = conv_timestr[0..1].to_i
+	#puts "hour:", hour
+	if hour >= 12 then
+		if hour == 12 then
+			return hour.to_s+':'+conv_timestr[3..4]+' pm'
+		else
+			hour = hour -12
+			if hour < 10 then
+				return '0'+hour.to_s+':'+conv_timestr[3..4]+' pm'
+			else
+				return hour.to_s+':'+conv_timestr[3..4]+' pm'
+			end
+		end
+	else
+		if hour == 0 then
+			hour = 12
+			return hour.to_s+':'+conv_timestr[3..4]+' am'
+		elsif hour < 10 then
+			return '0'+hour.to_s+':'+conv_timestr[3..4]+' am'
+		else
+			return hour.to_s+':'+conv_timestr[3..4]+' am'
+		end
+	end
+  end
+
     ########################################################################################################################################
 	#
 	#	navigate_to_first_homescreen
@@ -612,28 +422,414 @@ class TestClassCalendarWidget < Test::Unit::TestCase
 	
   def navigate_to_first_homescreen
 	app = @sut.application(:name => 'hsapplication')
-	if app.HsPageIndicatorItem(:__index =>0).test_object_exists?("HbIconItem",{:iconName => 'qtg_graf_hspage_highlight'}) then
-		page = 1
-	elsif app.HsPageIndicatorItem(:__index =>1).test_object_exists?("HbIconItem",{:iconName => 'qtg_graf_hspage_highlight'}) then
-		page = 2
-		app.HsPageIndicatorItem(:__index =>1).gesture(:Right,1,170)
-		if app.HsPageIndicatorItem(:__index =>0).test_object_exists?("HbIconItem",{:iconName => 'qtg_graf_hspage_highlight'}) then
-			page = 1
-		else
-			raise VerificationError ,"ERROR: Cannot go to first home screen", caller
+	#Check, which HS we are
+	for i in 0..(@HS_count-1)
+		if(app.HsIdleWidget.HbWidget( :name => 'controlLayer' ).HsPageIndicator( :name => 'pageIndicator' ).HsPageIndicatorItem(:__index =>i).test_object_exists?("HbIconItem",{:iconName => 'qtg_graf_hspage_highlight'})) then
+			puts "we are in HS " + (i+1).to_s
+			current_HS_location = i
+			break
 		end
-	else
-		page = 3
-		app.HsPageIndicatorItem(:__index =>1).gesture(:Right,1,170)
-		sleep 1
-		app.HsPageIndicatorItem(:__index =>1).gesture(:Right,1,170)
-		if app.HsPageIndicatorItem(:__index =>0).test_object_exists?("HbIconItem",{:iconName => 'qtg_graf_hspage_highlight'}) then
-			page = 1
-		else
-			raise VerificationError ,"ERROR: Cannot go to first home screen", caller
+	end
+	#Go to first HS if we are not there
+	if current_HS_location != 0 then
+		for j in 1..current_HS_location
+			app.HsIdleWidget.HbWidget( :name => 'controlLayer' ).HsPageIndicator( :name => 'pageIndicator' ).HsPageIndicatorItem(:__index =>current_HS_location).gesture(:Right,1,200)
 		end
 	end
   end
+  
+    ########################################################################################################################################
+	#
+	#	remove_calendar_widget_from_homescreen
+	#
+	#	description:
+	#		This function emoves calendar widget from homescreen
+	#
+	#	preconditions: 
+	#		-Phone is in homescreen and there is calendar widget in HS
+	#	parameters:
+	#		hs_pagenumber:	Number of the homescreen page (0, 1 or 2)
+	#
+	#	created: Jarno Mäkelä
+	#	creation date: 17-May-2010
+	#
+	########################################################################################################################################
+	
+  def remove_calendar_widget_from_homescreen(hs_pagenumber)
+	app = @sut.application(:name => 'hsapplication')
+	#find correct widget host object
+	calendar_widget_object = app.HsIdleWidget.HbWidget(:__index =>2).HsPageVisual(:__index => hs_pagenumber).find(:name => 'CalendarWidget')
+	calendar_widget_object.tap_down
+	calendar_widget_object = app.HbWidget( :name => 'controlLayer' ).find(:name => 'CalendarWidget')
+	calendar_widget_object.drag_to_object(app.HsTrashBinWidget( :name => 'trashBin' ))
+  end
+  
+    ########################################################################################################################################
+	#
+	#	delete_calendar_events !!!FIXTURE NOT WORKING !!!
+	#
+	#	description:
+	#		This function deletes all calendar events via fixture  
+	#
+	#	preconditions: 
+	#
+	#	parameters:
+	#		-app:				application needed
+	#
+	#	created: Jarno Mäkelä
+	#	creation date: 19-May-2010
+	#
+	########################################################################################################################################
+	
+  def delete_calendar_events(app)
+	tmp_id = app.id
+	tmp = @sut.execution_order
+	@sut.execution_order = ['S60']
+	app.apply_behaviour!( :name => 'S60Fixture' )
+	app.set_application_id(app.attribute('applicationUid'));
+	response = app.fixture('tapi_calendar_fixture', 'delete_all', {})
+	@sut.execution_order = tmp
+	app.apply_behaviour!( :name => 'QtFixture' ) 
+	app.set_application_id(tmp_id)
+	response
+  end
+
+    ########################################################################################################################################
+	#
+	#	delete_calendar_events_via_UI
+	#
+	#	description:
+	#		This function deletes all calendar events via calendar UI  
+	#
+	#	preconditions: 
+	#
+	#	parameters:
+	#		-app:				application needed
+	#
+	#	created: Jarno Mäkelä
+	#	creation date: 13-Aug-2010
+	#
+	########################################################################################################################################
+	  
+  def delete_calendar_events_via_UI
+	cal_app = @sut.run(:name => "calendar.exe")
+	cal_app.HbMarqueeItem(:text => 'Calendar').tap
+	if cal_app.test_object_exists?("HbTextItem",{:text => 'Delete entries'}) then
+		cal_app.HbTextItem(:text => 'Delete entries').tap
+		cal_app.HbTextItem(:text => 'All entries').tap
+		cal_app.HbTextItem(:text => 'Delete').tap
+	end
+	cal_app.close
+  end
+  
+    ########################################################################################################################################
+	#
+	#	set_event_time_via_UI
+	#
+	#	description:
+	#		This function sets wanted event time via calendar UI  
+	#
+	#	preconditions: 
+	#
+	#	parameters:
+	#		-app:				application needed
+	#		-time:				time, what is wanted to set
+	#
+	#	created: Jarno Mäkelä
+	#	creation date: 13-Aug-2010
+	#
+	########################################################################################################################################
+	  
+  def set_event_time_via_UI(app,time)
+	#Check,what value there is currently in hour time
+	current_hour_value = app.HbDatePickerView(:__index => 0).HbAbstractItemContainer.HbDatePickerViewItem(:__index => 2).HbTextItem.attribute("text")
+	puts "current_hour_value = " + current_hour_value
+	current_hour_value_i = current_hour_value.to_i
+	if @hourformat_12 == true then
+		#12 hour time used
+		set_time_value = convert_time_to_12hour_format(time)
+	else
+		#24 hour time used
+		set_time_value = time
+	end 
+	set_time_hour_value = set_time_value[0..1]
+	puts "set_time_hour_value = " + set_time_hour_value
+	set_time_hour_value_i = set_time_hour_value.to_i
+	if set_time_hour_value_i < current_hour_value_i then
+		if @hourformat_12 == true then
+			#12 hour time used
+			set_time_hour_value_i = set_time_hour_value_i +12
+		else
+			#24 hour time used
+			set_time_hour_value_i = set_time_hour_value_i +24
+		end 
+	end
+	for i in 0..(set_time_hour_value_i - 1 - current_hour_value_i)
+		index = 2 + i
+		app.HbDatePickerView(:__index => 0).HbAbstractItemContainer.HbDatePickerViewItem(:__index => index).HbTextItem.gesture(:Up,0.5,53)
+	end
+  end
+  
+    ########################################################################################################################################
+	#
+	#	create_calendar_event !!!FIXTURE NOT WORKING !!!
+	#
+	#	description:
+	#		This function creates calendar event via fixture  
+	#
+	#	preconditions: 
+	#
+	#	parameters:
+	#		-subject:			subject of the meeting
+	#		-start_day:	    	start day of the meeting
+	#		-start_month:		start month of the meeting
+	#		-start_year:		start year of the meeting
+	#		-start_hour:		start hour of the meeting
+	#		-start_minute:		start minute of the meeting
+	#		-duration_days: 	duration of the days, that meeting is lasting
+	#		-duration_hours:	duration of the hours, that meeting is lasting
+	#		-duration_minutes:	duration of the minutes, that meeting is lasting
+	#
+	#	return value:
+	#		-time_to_verify:	time, that is supposed to be in the calendar widget (Format: hh:mm-hh:mm or hh:mm (am/pm)-hh:mm (am/pm))
+	#
+	#	created: Jarno Mäkelä
+	#	creation date: 17-May-2010
+	#
+	########################################################################################################################################
+	
+  def create_calendar_event(app, subject,start_day, start_month, start_year, start_hour, start_minute, duration_days, duration_hours, duration_minutes)
+	#Creates calendar event
+	#let's calculate the real values of start date. In parameters, eg. the day value can exceed 31, so we need to change month and set day
+	#to 1. Same calculation needed for other parameter values
+	start_date = calculate_date(start_day, start_month, start_year, start_hour, start_minute)
+	puts "start_date:",start_date.to_s
+	start_time_split = (start_date.to_s).split
+	start_time = start_time_split[1]
+	start_time_to_verify = start_time[0..4]
+	puts "start_time_to_verify:",start_time_to_verify
+	end_date = calculate_date(start_day+duration_days, start_month, start_year, start_hour+duration_hours, start_minute+duration_minutes)
+	puts "end_date:",end_date.to_s
+	end_time_split = (end_date.to_s).split
+	end_time = end_time_split[1]
+	end_time_to_verify = end_time[0..4]
+	puts "end_time_to_verify:",end_time_to_verify
+	if @hourformat_12 == true then
+		#12 hour time used
+		time_to_verify = convert_time_to_12hour_format(start_time_to_verify)+'-'+convert_time_to_12hour_format(end_time_to_verify)
+	else
+		#24 hour time used
+		time_to_verify = start_time_to_verify+'-'+end_time_to_verify
+	end
+	tmp_id = app.id
+	tmp = @sut.execution_order
+	@sut.execution_order = ['S60']
+	app.apply_behaviour!( :name => 'S60Fixture' )
+	app.set_application_id(app.attribute('applicationUid'));
+	response = app.fixture('tapi_calendar_fixture', 'add_meeting', {:description =>  subject, :start_date => start_date, :end_date => end_date})
+	@sut.execution_order = tmp
+	app.apply_behaviour!( :name => 'QtFixture' ) 
+	app.set_application_id(tmp_id)
+	response
+	#let's put date if event is in other future day than today
+	if start_day > @day.to_i then
+	   start_date = start_time_split[0]
+	   month_text = case start_date[3..4]
+			when "01" then "Jan"
+			when "02" then "Feb"
+			when "03" then "Mar"
+			when "04" then "Apr"
+			when "05" then "May"
+			when "06" then "Jun"
+			when "07" then "Jul"
+			when "08" then "Aug"
+			when "09" then "Sep"
+			when "10" then "Oct"
+			when "11" then "Nov"
+			when "12" then "Dec"
+		end
+		puts "time_to_verify:", start_date[0..1]+' '+month_text+' '+time_to_verify
+		return start_date[0..1]+' '+month_text+' '+time_to_verify
+	else
+		puts "time_to_verify:", time_to_verify
+		return time_to_verify
+	end
+  end
+  
+    ########################################################################################################################################
+	#
+	#	create_calendar_event_via_calendar
+	#
+	#	description:
+	#		This function creates calendar event via calendar application UI  
+	#
+	#	preconditions: 
+	#
+	#	parameters:
+	#		-subject:			subject of the meeting (not working yet)
+	#		-start_day:	    	start day of the meeting(not working yet)
+	#		-start_month:		start month of the meeting(not working yet)
+	#		-start_year:		start year of the meeting(not working yet)
+	#		-start_hour:		start hour of the meeting(minimun value two hours more than current time)
+	#		-start_minute:		start minute of the meeting(not working yet)
+	#		-duration_days: 	duration of the days, that meeting is lasting(not working yet)
+	#		-duration_hours:	duration of the hours, that meeting is lasting(not working yet)
+	#		-duration_minutes:	duration of the minutes, that meeting is lasting(not working yet)
+	#
+	#	return value:
+	#		-time_to_verify:	time, that is supposed to be in the calendar widget (Format: hh:mm-hh:mm or hh:mm (am/pm)-hh:mm (am/pm))
+	#
+	#	created: Jarno Mäkelä
+	#	creation date: 13-Aug-2010
+	#
+	########################################################################################################################################
+	
+  def create_calendar_event_via_calendar(subject,start_day, start_month, start_year, start_hour, start_minute, duration_days, duration_hours, duration_minutes)
+	#Creates calendar event via calendar application
+	#let's calculate the real values of start date. In parameters, eg. the day value can exceed 31, so we need to change month and set day
+	#to 1. Same calculation needed for other parameter values
+	if start_minute > 15 then
+		if start_minute > 45 then
+			start_hour = start_hour + 1
+			start_minute = 0
+		else
+			start_minute = 30
+		end
+	else
+		start_minute = 0
+	end
+	start_date = calculate_date(start_day, start_month, start_year, start_hour, start_minute)
+	puts "start_date:",start_date.to_s
+	start_time_split = (start_date.to_s).split
+	start_time = start_time_split[1]
+	start_time_to_verify = start_time[0..4] 
+	puts "start_time_to_verify:",start_time_to_verify
+	end_date = calculate_date(start_day+duration_days, start_month, start_year, start_hour+duration_hours, start_minute + duration_minutes)
+	puts "end_date:",end_date.to_s
+	end_time_split = (end_date.to_s).split
+	end_time = end_time_split[1]
+	end_time_to_verify = end_time[0..4]
+	puts "end_time_to_verify:",end_time_to_verify
+	#puts "create_calendar_event_via_calendar @hourformat_12 = " + @hourformat_12.to_s
+	if @hourformat_12 == true then
+		#12 hour time used
+		time_to_verify = convert_time_to_12hour_format(start_time_to_verify)+'-'+convert_time_to_12hour_format(end_time_to_verify)
+	else
+		#24 hour time used
+		time_to_verify = start_time_to_verify+'-'+end_time_to_verify
+	end
+	cal_app = @sut.run(:name => "calendar.exe")
+	#cal_app.HbIconItem(:iconName => 'qtg_mono_options_menu').tap
+	cal_app.HbMarqueeItem(:text => 'Calendar').tap
+	cal_app.HbTextItem(:text => 'New entry').tap
+	#Add the subject. Cannot do this currently,since phone won't go away from text input
+	#cal_app.HbLineEdit( :name => 'subjectItem' ).tap
+	#cal_app.HbLineEdit( :name => 'subjectItem' ).HbScrollArea.HbWidget.type_text(subject)
+	#cal_app.QGraphicsWidget( :name => 'vkbHandle' ).tap
+	#Add start time
+	cal_app.HbPushButton( :name => 'startTime' ).tap
+	set_event_time_via_UI(cal_app,start_time_to_verify)
+	cal_app.HbTextItem( :text => 'OK' ).tap
+	cal_app.HbIconItem(:iconName => 'qtg_mono_back').tap
+	#cal_app.HbIconItem(:iconName => 'qtg_mono_back').tap
+	cal_app.close
+	#let's put date if event is in other future day than today
+	if start_day > @day.to_i then
+	   start_date = start_time_split[0]
+	   month_text = case start_date[3..4]
+			when "01" then "Jan"
+			when "02" then "Feb"
+			when "03" then "Mar"
+			when "04" then "Apr"
+			when "05" then "May"
+			when "06" then "Jun"
+			when "07" then "Jul"
+			when "08" then "Aug"
+			when "09" then "Sep"
+			when "10" then "Oct"
+			when "11" then "Nov"
+			when "12" then "Dec"
+		end
+		puts "time_to_verify:", start_date[0..1]+' '+month_text+' '+time_to_verify
+		return start_date[0..1]+' '+month_text+' '+time_to_verify
+	else
+		puts "time_to_verify:", time_to_verify
+		return time_to_verify
+	end
+  end
+  
+  ##############################################################################################################################################
+  # Calendar widget - initialize
+  ##############################################################################################################################################
+  #
+  # Purpose of the test is to make initializing of calendar widget environment 
+  #
+  #	Created at: 10.08.2010
+  #	Created by: Jarno Mäkelä
+  #	Reviewed by: 
+  #
+  #	===	Initializing consists
+  #	- Counting of existing Home screens
+  # - Checking phone date
+  # - Checking calendar widget existing and removing it if it is found in HS
+  # - Navigating to first HS
+  #
+  #	===	params
+  #	none
+  #
+  ############################################################################################################################################
+
+  def test_initialize_calendar_widget_test_env
+	puts "test_initialize_calendar_widget_test_env start"
+	app = @sut.application(:name => 'hsapplication')
+	#Let's check existing Home screens
+	#identificator = TestObjectIdentificator.new(:type => :HsPageVisual)
+	#xml =  app.HsIdleWidget.HbWidget( :__index =>2 ).xml_data 
+	#element_set = xml.xpath( xpath = identificator.get_xpath_to_identify( xml ) ) 
+	#@HS_count = element_set.size
+	#check_phone_date
+	#Check, if calendar widget exists in some of the Home screens
+	if (app.test_object_exists?("HbWidget",{:name => 'CalendarWidget'})) then
+		#Check, which HS window calendar widget exists
+		for i in 0..(@HS_count-1)
+			if(app.HsIdleWidget.HbWidget(:__index =>2).HsPageVisual(:__index =>i).test_object_exists?("HbWidget",{:name => 'CalendarWidget'})) then
+				puts "calendar widget found in HS " + (i+1).to_s
+				widget_HS_location = i
+				break
+			end
+		end
+		#Go to homescreen, where calendar widget is and remove it
+		#first check, that we are in first HS
+		for i in 0..(@HS_count-1)
+			if(app.HsIdleWidget.HbWidget( :name => 'controlLayer' ).HsPageIndicator( :name => 'pageIndicator' ).HsPageIndicatorItem(:__index =>i).test_object_exists?("HbIconItem",{:iconName => 'qtg_graf_hspage_highlight'})) then
+				puts "we are in HS " + (i+1).to_s
+				our_HS_location = i
+				break
+			end
+		end
+		#Go to same HS where calendar widget is
+		if our_HS_location == widget_HS_location then
+			remove_calendar_widget_from_homescreen(our_HS_location)
+		else
+			if our_HS_location < widget_HS_location then
+				for i in our_HS_location..widget_HS_location-1
+					app.HsIdleWidget.HbWidget( :name => 'controlLayer' ).HsPageIndicator( :name => 'pageIndicator' ).HsPageIndicatorItem(:__index =>our_HS_location).gesture(:Left,1,200)
+				end
+				sleep 1
+				remove_calendar_widget_from_homescreen(widget_HS_location)
+			else
+				for i in widget_HS_location..our_HS_location-1
+					app.HsIdleWidget.HbWidget( :name => 'controlLayer' ).HsPageIndicator( :name => 'pageIndicator' ).HsPageIndicatorItem(:__index =>our_HS_location).gesture(:Right,1,200)
+				end
+				sleep 1
+				remove_calendar_widget_from_homescreen(widget_HS_location)
+			end
+		end
+	end
+	#navigate to the first home screen
+	navigate_to_first_homescreen
+  end
+  
 ################################################################################################################################################
 ###
 ###						BAT cases start
@@ -652,44 +848,34 @@ class TestClassCalendarWidget < Test::Unit::TestCase
   #
   #	===	preconditions
   #	- Device is in Home Screen
-  # - Some events in Calendar.
+  # - There is no calendar widget on any home screens
   #
   #	===	params
   #	none
   #
   ############################################################################################################################################
   
-  def _test_calendar_widget_load_unload_widget_in_HomeScreen
+  def test_calendar_widget_load_unload_widget_in_HomeScreen
 	#running_round = 1
 	#max_running_rounds = 2
 	#begin
 		#Preconditions:
 		#Device is in Homescreen
 		app = @sut.application(:name => 'hsapplication')
-		navigate_to_first_homescreen
 		verify(){app.HbIconItem(:iconName => 'qtg_mono_applications_all')}
-		#Some events in calendar
+		#There is no calendar widget on any home screens. This is done in initialize test function already
 		check_phone_date
 		check_phone_time
-		create_calendar_event(app, 'Meeting 1',@day.to_i+1,@month.to_i,@year.to_i,@hour.to_i+1,@minute.to_i,0,1,0)
-		create_calendar_event(app, 'Meeting 2',@day.to_i+2,@month.to_i,@year.to_i,@hour.to_i-2,@minute.to_i,0,1,0)
 		#Step 1:Tap application list button in the upper right corner of Home Screen
 		app.HbIconItem(:iconName => 'qtg_mono_applications_all').tap
-		#step 2: Select 'add to homescreen' by longpressing 'Calendar Widget' in the catalog list
+		#step 2: Select 'Calendar Widget' by tapping it.
 		add_calendar_widget_to_homescreen(app,'AppListButton')
 		#step 2 expected: Calendar widget is added to Home Screen.
 		day_to_verify = @day.to_i
 		#puts "day_to_verify =", day_to_verify
-		verify(){app.HbTextItem(:text => day_to_verify)}
-		#Calendar widget content contains "No event for next 7 days"
-		#verify(){app.HbTextItem(:text => 'No events for next 7 days')}
-		#Verify, that reminder icon in widget is not shown
-		#if not(app.test_object_exists?("HbIconItem",{:iconName => 'images/bell.PNG'})) then
-		#	raise VerificationError ,"ERROR: There is not reminder icon in calendar widget, when it should be there", caller
-		#end
+		verify(){app.HbLabel( :name => 'dayNumber' ).HbTextItem(:text => day_to_verify)}
 		#Step 3 and Step4:Remove calendar widget from display
-		remove_calendar_widget_from_homescreen(0)
-		delete_calendar_events(app)
+		#remove_calendar_widget_from_homescreen(0)
 	#rescue
 	#	if (running_round < max_running_rounds) then
     #       running_round = running_round + 1
@@ -748,7 +934,7 @@ class TestClassCalendarWidget < Test::Unit::TestCase
   #
   ############################################################################################################################################
   
-  def _test_calendar_widget_one_event_today_one_event_tomorrow
+  def test_calendar_widget_one_event_today_one_event_tomorrow
 	#running_round = 1
 	#max_running_rounds = 2
 	#begin
@@ -760,7 +946,7 @@ class TestClassCalendarWidget < Test::Unit::TestCase
 		#- One event happens few hours after current phone time at today and one event at tomorrow in Calendar.
 		check_phone_date
 		check_phone_time
-		today_time_for_verification = create_calendar_event(app, 'Today meeting',@day.to_i,@month.to_i,@year.to_i,@hour.to_i+3,@minute.to_i,0,1,0)
+		today_time_for_verification = create_calendar_event_via_calendar("not working",@day.to_i,@month.to_i,@year.to_i,@hour.to_i+2,@minute.to_i,0,1,0)
 		tomorrow_time_for_verification = create_calendar_event(app, 'Tomorrow meeting',@day.to_i+1,@month.to_i,@year.to_i,@hour.to_i,@minute.to_i,0,1,0)
 		#-Calendar widget is added to Home Screen.
 		#Not adding calendar widget, if it already exists there
@@ -819,72 +1005,99 @@ class TestClassCalendarWidget < Test::Unit::TestCase
   #
   ############################################################################################################################################
   
-  def _test_calendar_widget_overlapping_events
-	running_round = 1
-	max_running_rounds = 2
-	begin
-		#Preconditions:
-		#Device is in Homescreen
-		app = @sut.application(:name => 'hsapplication')
-		verify(){app.HbIconItem(:iconName => 'qtg_mono_applications_all')}
-		navigate_to_first_homescreen
-		#- One event happens few hours after current phone time at today in Calendar.
-		check_phone_date
-		check_phone_time
-		today_time_for_verification = create_calendar_event(app, 'Today meeting',@day.to_i,@month.to_i,@year.to_i,@hour.to_i+3,@minute.to_i,0,1,0)
-		#-Calendar widget is added to Home Screen.
-		#Not adding calendar widget, if it already exists there
-		if not(app.test_object_exists?("HbWidget",{:name => 'CalendarWidget'})) then
-			#add calendar widget to home screen
-			app.HbIconItem(:iconName => 'qtg_mono_applications_all').tap
-			add_calendar_widget_to_homescreen(app,'AppListButton')
-		end
-		#Step 1:Check Calendar widget.
-		#step 1 Expected: - All icons (widget icon and reminder icon) are shown correctly.
-		#- Calendar widget shows the event as two rows: first row show the event time and second row shows the event title.
-		day_to_verify = @day.to_i
-		verify(){app.HbTextItem(:text => day_to_verify)}
-		verify(){app.HbLabel( :name => 'upperLabel' ).HbTextItem( :text => today_time_for_verification )}
-		verify(){app.HbLabel( :name => 'lowerLabel' ).HbTextItem( :text => 'Today meeting' )}
-		#Verify, that reminder icon in widget is shown
-		#if not(app.test_object_exists?("HbIconItem",{:iconName => 'images/bell.PNG'})) then
-		#	raise VerificationError ,"ERROR: There is not reminder icon in calendar widget, when it should be there", caller
-		#end
-		
-		#Step 2:Create another event overlapping the first event in Calendar.
-		another_time_for_verification = create_calendar_event(app, 'Another today meeting',@day.to_i,@month.to_i,@year.to_i,@hour.to_i+3,@minute.to_i+15,0,1,0)
-		#Step 3:Return to Home Screen and check Calendar widget.
-		#Step 3 Expected: - All icons (widget icon and reminder icon) are shown correctly.
-		#- Calendar widget shows the overlapping information as two rows: first row shows overlapping time and second row shows  text 
-		#'2 events overlapping'.
-		if @hourformat_12 == true then
-			overlapping_time_for_verification = today_time_for_verification[0..7]+'-'+another_time_for_verification[9..16]
-		else
-			overlapping_time_for_verification = today_time_for_verification[0..4]+'-'+another_time_for_verification[6..10]
-		end
-		puts "overlapping_time_for_verification: ",overlapping_time_for_verification
-		verify(){app.HbLabel( :name => 'upperLabel' ).HbTextItem( :text => overlapping_time_for_verification )}
-		verify(){app.HbLabel( :name => 'lowerLabel' ).HbTextItem( :text => '2 events overlapping' )}
-		#Step 4: Tap the overlapping events part in calendar view
-		app.HbLabel( :name => 'lowerLabel' ).HbTextItem( :text => '2 events overlapping' ).tap
-		#Step 4 Expected: - Phone goes to calendar agenda view with  all events visible.
-		#ToDo
-		# - The date is same as the event date.
-		#ToDo
-		remove_calendar_widget_from_homescreen(0)
-		delete_calendar_events(app)
-	rescue
-		if (running_round < max_running_rounds) then
-           running_round = running_round + 1
-           puts "Some error came during run. Lets try again"
-           teardown
-	       retry
-        else
-           puts "Test failed"
-           raise
-        end
-	end #rescue	
+  def test_calendar_widget_overlapping_events
+	#Preconditions:
+	#Device is in Homescreen
+	app = @sut.application(:name => 'hsapplication')
+	verify(){app.HbIconItem(:iconName => 'qtg_mono_applications_all')}
+	#- One event happens few hours after current phone time at today in Calendar.
+	check_phone_date
+	check_phone_time
+	today_time_for_verification = create_calendar_event_via_calendar("not working",@day.to_i,@month.to_i,@year.to_i,@hour.to_i+2,@minute.to_i,0,0,0)
+	#-Calendar widget is added to Home Screen.
+	#Not adding calendar widget, if it already exists there
+	if not(app.test_object_exists?("HbWidget",{:name => 'CalendarWidget'})) then
+		#add calendar widget to home screen
+		app.HbIconItem(:iconName => 'qtg_mono_applications_all').tap
+		add_calendar_widget_to_homescreen(app,'AppListButton')
+	end
+	#Step 1:Check Calendar widget.
+	#step 1 Expected: - All icons (widget icon and reminder icon) are shown correctly.
+	#- Calendar widget shows the event as two rows: first row show the event time and second row shows the event title.
+	day_to_verify = @day.to_i
+	verify(){app.HbTextItem(:text => day_to_verify)}
+	verify(){app.HbLabel( :name => 'upperLabel' ).HbTextItem( :text => today_time_for_verification )}
+	verify(){app.HbLabel( :name => 'lowerLabel' ).HbTextItem( :text => 'Unnamed' )}
+	#Verify, that reminder icon in widget is shown
+	if not(app.test_object_exists?("HbFrameItem",{:frameGraphicsName => 'qtg_small_reminder'})) then
+		raise VerificationError ,"ERROR: There is not reminder icon in calendar widget, when it should be there", caller
+	end
+	
+	#Step 2:Create another event overlapping the first event in Calendar.
+	another_time_for_verification = create_calendar_event_via_calendar("Another not working",@day.to_i,@month.to_i,@year.to_i,@hour.to_i+2,@minute.to_i,0,0,0)
+	#Step 3:Return to Home Screen and check Calendar widget.
+	#Step 3 Expected: - All icons (widget icon and reminder icon) are shown correctly.
+	#- Calendar widget shows the overlapping information as two rows: first row shows overlapping time and second row shows  text 
+	#'2 events overlapping'.
+	if @hourformat_12 == true then
+		overlapping_time_for_verification = today_time_for_verification[0..7]+'-'+another_time_for_verification[9..16]
+	else
+		overlapping_time_for_verification = today_time_for_verification[0..4]+'-'+another_time_for_verification[6..10]
+	end
+	puts "overlapping_time_for_verification: ",overlapping_time_for_verification
+	verify(){app.HbLabel( :name => 'upperLabel' ).HbTextItem( :text => overlapping_time_for_verification )}
+	verify(){app.HbLabel( :name => 'lowerLabel' ).HbTextItem( :text => '2 overlapping entry' )}
+	#Step 4: Tap the overlapping events part in calendar view
+	app.HbLabel( :name => 'lowerLabel' ).HbTextItem( :text => '2 overlapping entry' ).tap
+	#Step 4 Expected: - Phone goes to calendar agenda view with all events visible.
+	#ToDo 
+	# !! NOT WORKING IN week 30 SW !!
+	# - The date is same as the event date.
+	#ToDo
+	delete_calendar_events_via_UI
   end
+  
+  def test_calendar_widget_overlapping_events_fixed
+	#Preconditions:
+	#Device is in Homescreen
+	app = @sut.application(:name => 'hsapplication')
+	verify(){app.HbIconItem(:iconName => 'qtg_mono_applications_all')}
+	#- One event happens few hours after current phone time at today in Calendar.
+	check_phone_date
+	check_phone_time
+	today_time_for_verification = create_calendar_event_via_calendar("not working",@day.to_i,@month.to_i,@year.to_i,@hour.to_i+2,@minute.to_i,0,0,0)
+	#-Calendar widget is added to Home Screen.
+	#Not adding calendar widget, if it already exists there
+	if not(app.test_object_exists?("HbWidget",{:name => 'CalendarWidget'})) then
+		#add calendar widget to home screen
+		app.HbIconItem(:iconName => 'qtg_mono_applications_all').tap
+		add_calendar_widget_to_homescreen(app,'AppListButton')
+	end
+	#Step 1:Check Calendar widget.
+	#step 1 Expected: - All icons (widget icon and reminder icon) are shown correctly.
+	#- Calendar widget shows the event as two rows: first row show the event time and second row shows the event title.
+	day_to_verify = @day.to_i
+	verify(){app.HbTextItem(:text => day_to_verify)}
+	#Verify, that reminder icon in widget is shown
+	if not(app.test_object_exists?("HbFrameItem",{:frameGraphicsName => 'qtg_small_reminder'})) then
+		raise VerificationError ,"ERROR: There is not reminder icon in calendar widget, when it should be there", caller
+	end
+	
+	#Step 2:Create another event overlapping the first event in Calendar.
+	another_time_for_verification = create_calendar_event_via_calendar("Another not working",@day.to_i,@month.to_i,@year.to_i,@hour.to_i+2,@minute.to_i,0,0,0)
+	#Step 3:Return to Home Screen and check Calendar widget.
+	#Step 3 Expected: - All icons (widget icon and reminder icon) are shown correctly.
+	#- Calendar widget shows the overlapping information as two rows: first row shows overlapping time and second row shows  text 
+	#'2 events overlapping'.
+	if @hourformat_12 == true then
+		overlapping_time_for_verification = today_time_for_verification[0..7]+'-'+another_time_for_verification[9..16]
+	else
+		overlapping_time_for_verification = today_time_for_verification[0..4]+'-'+another_time_for_verification[6..10]
+	end
+	puts "overlapping_time_for_verification: ",overlapping_time_for_verification
+	verify(){app.HbLabel( :name => 'lowerLabel' ).HbTextItem( :text => '2 overlapping entry' )}
+	delete_calendar_events_via_UI
+  end #test_calendar_widget_overlapping_events_fixed
   
   ##############################################################################################################################################
   # Calendar widget - Tapping upcoming event
@@ -939,7 +1152,7 @@ class TestClassCalendarWidget < Test::Unit::TestCase
 		app = @sut.application(:name => 'hsapplication')
 		#verify(){@sut.application(:name => 'hsapplication').HbIconItem(:iconName => 'qtg_mono_applications_all')}
 		verify(){app.HbIconItem(:iconName => 'qtg_mono_applications_all')}
-		navigate_to_first_homescreen
+		#navigate_to_first_homescreen
 		#-Calendar widget is added to Home Screen.
 		#Not adding calendar widget, if it already exists there
 		if not(app.test_object_exists?("HbWidget",{:name => 'CalendarWidget'})) then
@@ -970,7 +1183,7 @@ class TestClassCalendarWidget < Test::Unit::TestCase
 		verify(){app.HbTextItem(:text => day_to_verify)}
 		verify(){app.HbTextItem(:text => month_in_view)}
 		#Calendar widget content contains "No event for next 7 days"
-		verify(){app.HbTextItem(:text => 'No calendar entries today or next 7 days')}
+		verify(){app.HbTextItem(:text => 'No entries for 7 days')}
 	
 		#Verify, that reminder icon in widget is not shown
 		if (app.test_object_exists?("HbIconItem",{:iconName => 'images/bell.PNG'})) then

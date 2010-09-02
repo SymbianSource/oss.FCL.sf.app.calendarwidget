@@ -653,39 +653,42 @@ void ContentLayoutHandler::showNextDaysEvent()
     QString startTime = mAgendaEntryList.at(0).startTime().time().toString(currentTimeFormat());
     QString endTime = mAgendaEntryList.at(0).endTime().time().toString(currentTimeFormat());
     QString description = mAgendaEntryList.at(0).summary();
+    if( description == "" ) {
+        //TODO: replace Unnamed with the correct localisation string when it will be available
+        description = "Unnamed";
+    }
     if (!isAllDayEvent(mAgendaEntryList.at(0))) {
         //if not all day event show the start time
         if (mAgendaEntryList.at(0).startTime().date() == mAgendaEntryList.at(0).endTime().date()) {
-            setLabelText(mUpperLabelShort, day + " " + startTime + " " + description);
-            setLabelText(mLowerLabel, hbTrId("txt_calendar_widget_v_dblist_val_no_events_tod"));
+            setLabelText(mUpperLabelShort, day + " " + startTime /*+ " " + description*/);
+            setLabelText(mLowerLabel, description/*hbTrId("txt_calendar_widget_v_dblist_val_no_events_tod")*/);
         }
         else {
             //if the end date is different from the starting date show that information
             setLabelText(mUpperLabelShort, day + " " + startTime + "-"
-                + mAgendaEntryList.at(0).endTime().date().toString(currentDateFormat()) + " "
-                + description);
-            setLabelText(mLowerLabel, hbTrId("txt_calendar_widget_v_dblist_val_no_events_tod"));
+                + mAgendaEntryList.at(0).endTime().date().toString(currentDateFormat()) /*+ " "
+                + description*/);
+            setLabelText(mLowerLabel, description/*hbTrId("txt_calendar_widget_v_dblist_val_no_events_tod")*/);
         }
     }
     else {
         // It's an all day event
         if (isOneDayAllDayEvent(mAgendaEntryList.at(0))) {
             // It's a one day all day event
-            setLabelText(mUpperLabelShort, day + " " + description);
-            setLabelText(mLowerLabel, hbTrId("txt_calendar_widget_v_dblist_val_no_events_tod"));
+            setLabelText(mUpperLabelShort, day /*+ " " + description*/);
+            setLabelText(mLowerLabel, description /*hbTrId("txt_calendar_widget_v_dblist_val_no_events_tod")*/);
         }
         else {
             // It's a multiple day all day event
             setLabelText(mUpperLabelShort, day + " - "
-                + mAgendaEntryList.at(0).endTime().date().addDays(-1).toString(currentDateFormat()) + " "
-                + description);
-            setLabelText(mLowerLabel, hbTrId("txt_calendar_widget_v_dblist_val_no_events_tod"));
+                + mAgendaEntryList.at(0).endTime().date().addDays(-1).toString(currentDateFormat()) /*+ " "
+                + description*/);
+            setLabelText(mLowerLabel, description/*hbTrId("txt_calendar_widget_v_dblist_val_no_events_tod")*/);
         }
     }
 
     int timeoffset = mAgendaEntryList.at(0).alarm().timeOffset();
-    if (mAgendaEntryList.at(0).alarm().timeOffset()
-        && mAgendaEntryList.at(0).alarm().timeOffset() != -1) {
+    if ( mAgendaEntryList.at(0).alarm().timeOffset() != -1 ) {
         setLabelVisible(mReminderLabel, true);
     }
     else {
@@ -809,6 +812,10 @@ void ContentLayoutHandler::showNextEvent()
     QString startTime = mAgendaEntryList.at(0).startTime().time().toString(currentTimeFormat());
     QString endTime = mAgendaEntryList.at(0).endTime().time().toString(currentTimeFormat());
     QString description = mAgendaEntryList.at(0).summary();
+    if( description == "" ) {
+        //TODO: replace Unnamed with the correct localisation string when it will be available
+        description = "Unnamed";
+    }
     if (!isAllDayEvent(mAgendaEntryList.at(0))) {
         //if not all day event show the start time and end time
         if (mAgendaEntryList.at(0).startTime().date() == mAgendaEntryList.at(0).endTime().date()) {
@@ -842,8 +849,7 @@ void ContentLayoutHandler::showNextEvent()
     }
 
     //check if reminder is set
-    if (mAgendaEntryList.at(0).alarm().timeOffset()
-        && mAgendaEntryList.at(0).alarm().timeOffset() != -1) {
+    if ( mAgendaEntryList.at(0).alarm().timeOffset() != -1 ) {
         setLabelVisible(mReminderLabel, true);
     }
     else {
