@@ -17,7 +17,7 @@
 
 # require needed Ruby, MATTI and Orbit files
 require 'test/unit'
-require 'matti'
+require 'tdriver'
 require 'date'
 #require 'parsedate'
 #require 'OrbitBehaviours'
@@ -40,7 +40,7 @@ class TestClassCalendarWidget < Test::Unit::TestCase
   def initialize (args)
 	super(args)
 	# MANDATORY DEFINITION: Define device "suts" which are used in testing, remember defined [ut] name in matti_parameters.xml
-	@sut = MATTI.sut(:Id => 'sut_s60_qt')
+	@sut = TDriver.sut(:Id => 'sut_s60_qt')
 	#to see if there is some widgets on the screen
 	retry_count = 0
 	begin
@@ -572,6 +572,58 @@ class TestClassCalendarWidget < Test::Unit::TestCase
   
     ########################################################################################################################################
 	#
+	#	set_event_date_via_UI
+	#
+	#	description:
+	#		This function sets wanted event date via calendar UI  
+	#
+	#	preconditions: 
+	#
+	#	parameters:
+	#		-app:				application needed
+	#		-date:				date, what is wanted to set
+	#
+	#	created: Jarno Mäkelä
+	#	creation date: 20-Aug-2010
+	#
+	########################################################################################################################################
+	  
+  def set_event_date_via_UI(app,date)
+	#Check,what value there is currently in hour date
+	current_day_value = app.HbDatePickerView(:__index => 0).HbAbstractItemContainer.HbDatePickerViewItem(:__index => 2).HbTextItem.attribute("text")
+	puts "current_day_value = " + current_day_value
+	current_day_value_i = current_day_value.to_i
+	set_date_day_value = date[0..1]
+	puts "set_date_day_value = " + set_date_day_value
+	set_date_day_value_i = set_date_day_value.to_i
+	for i in 0..(set_date_day_value_i - 1 - current_day_value_i)
+		index = 2 + i
+		app.HbDatePickerView(:__index => 0).HbAbstractItemContainer.HbDatePickerViewItem(:__index => index).HbTextItem.gesture(:Up,0.5,53)
+	end
+	current_month_value = app.HbDatePickerView(:__index => 1).HbAbstractItemContainer.HbDatePickerViewItem(:__index => 2).HbTextItem.attribute("text")
+	puts "current_month_value = " + current_month_value
+	current_month_value_i = current_month_value.to_i
+	set_date_month_value = date[3..4]
+	puts "set_date_month_value = " + set_date_month_value
+	set_date_month_value_i = set_date_month_value.to_i
+	for i in 0..(set_date_month_value_i - 1 - current_month_value_i)
+		index = 2 + i
+		app.HbDatePickerView(:__index => 1).HbAbstractItemContainer.HbDatePickerViewItem(:__index => index).HbTextItem.gesture(:Up,0.5,53)
+	end
+	current_year_value = app.HbDatePickerView(:__index => 2).HbAbstractItemContainer.HbDatePickerViewItem(:__index => 2).HbTextItem.attribute("text")
+	puts "current_year_value = " + current_year_value
+	current_year_value_i = current_year_value.to_i
+	set_date_year_value = date[6..9]
+	puts "set_date_year_value = " + set_date_year_value
+	set_date_year_value_i = set_date_year_value.to_i
+	for i in 0..(set_date_year_value_i - 1 - current_year_value_i)
+		index = 2 + i
+		app.HbDatePickerView(:__index => 2).HbAbstractItemContainer.HbDatePickerViewItem(:__index => index).HbTextItem.gesture(:Up,0.5,53)
+	end
+  end
+  
+    ########################################################################################################################################
+	#
 	#	create_calendar_event !!!FIXTURE NOT WORKING !!!
 	#
 	#	description:
@@ -730,12 +782,20 @@ class TestClassCalendarWidget < Test::Unit::TestCase
 	cal_app.HbPushButton( :name => 'startTime' ).tap
 	set_event_time_via_UI(cal_app,start_time_to_verify)
 	cal_app.HbTextItem( :text => 'OK' ).tap
-	cal_app.HbIconItem(:iconName => 'qtg_mono_back').tap
 	#cal_app.HbIconItem(:iconName => 'qtg_mono_back').tap
+	start_date = start_time_split[0]
+	#add start date
+	if start_date[0..1].to_i > @day.to_i || start_date[3..4].to_i > @month.to_i || start_date[6..9].to_i > @year.to_i then
+		puts "calendar event is in another day that today in future"
+		#set calendar date
+		cal_app.HbPushButton( :name => 'startDate' ).tap
+		set_event_date_via_UI(cal_app,start_date)
+		cal_app.HbTextItem( :text => 'OK' ).tap
+	end
+	cal_app.HbIconItem(:iconName => 'qtg_mono_back').tap
 	cal_app.close
 	#let's put date if event is in other future day than today
 	if start_day > @day.to_i then
-	   start_date = start_time_split[0]
 	   month_text = case start_date[3..4]
 			when "01" then "Jan"
 			when "02" then "Feb"
@@ -780,7 +840,6 @@ class TestClassCalendarWidget < Test::Unit::TestCase
   ############################################################################################################################################
 
   def test_initialize_calendar_widget_test_env
-	puts "test_initialize_calendar_widget_test_env start"
 	app = @sut.application(:name => 'hsapplication')
 	#Let's check existing Home screens
 	#identificator = TestObjectIdentificator.new(:type => :HsPageVisual)
@@ -942,12 +1001,11 @@ class TestClassCalendarWidget < Test::Unit::TestCase
 		#Device is in Homescreen
 		app = @sut.application(:name => 'hsapplication')
 		verify(){app.HbIconItem(:iconName => 'qtg_mono_applications_all')}
-		navigate_to_first_homescreen
 		#- One event happens few hours after current phone time at today and one event at tomorrow in Calendar.
 		check_phone_date
 		check_phone_time
 		today_time_for_verification = create_calendar_event_via_calendar("not working",@day.to_i,@month.to_i,@year.to_i,@hour.to_i+2,@minute.to_i,0,1,0)
-		tomorrow_time_for_verification = create_calendar_event(app, 'Tomorrow meeting',@day.to_i+1,@month.to_i,@year.to_i,@hour.to_i,@minute.to_i,0,1,0)
+		tomorrow_time_for_verification = create_calendar_event_via_calendar("not working",@day.to_i+1,@month.to_i,@year.to_i,@hour.to_i+2,@minute.to_i,0,1,0)
 		#-Calendar widget is added to Home Screen.
 		#Not adding calendar widget, if it already exists there
 		if not(app.test_object_exists?("HbWidget",{:name => 'CalendarWidget'})) then
@@ -962,15 +1020,12 @@ class TestClassCalendarWidget < Test::Unit::TestCase
 		day_to_verify = @day.to_i
 		verify(){app.HbTextItem(:text => day_to_verify)}
 		verify(){app.HbLabel( :name => 'upperLabel' ).HbTextItem( :text => today_time_for_verification )}
-		verify(){app.HbLabel( :name => 'lowerLabel' ).HbTextItem( :text => 'Today meeting' )}
+		verify(){app.HbLabel( :name => 'lowerLabel' ).HbTextItem( :text => 'Unnamed' )}
 		#Verify, that reminder icon in widget is shown
-		#cannot verify yet, since with calendar fixture only events, that has no reminder, are possible to create
-		#if not(app.test_object_exists?("HbIconItem",{:iconName => 'images/bell.PNG'})) then
-		#	raise VerificationError ,"ERROR: There is not reminder icon in calendar widget, when it should be there", caller
-		#end
-		
-		remove_calendar_widget_from_homescreen(0)
-		delete_calendar_events(app)
+		if not(app.test_object_exists?("HbFrameItem",{:frameGraphicsName => 'qtg_small_reminder'})) then
+			raise VerificationError ,"ERROR: There is not reminder icon in calendar widget, when it should be there", caller
+		end
+		delete_calendar_events_via_UI
 	#rescue
 	#	if (running_round < max_running_rounds) then
     #       running_round = running_round + 1
@@ -1111,7 +1166,7 @@ class TestClassCalendarWidget < Test::Unit::TestCase
   #
   #	===	preconditions
   #	- Device is in Home Screen.
-  # - Some events are created in Calendar.
+  # - At least one upcoming event created in Calendar.
   # - Calendar widget is added to Home Screen.
   #
   #	===	params
@@ -1119,8 +1174,31 @@ class TestClassCalendarWidget < Test::Unit::TestCase
   #
   ############################################################################################################################################
   
-  def _test_calendar_widget_tapping_upcoming_event
-	
+  def test_calendar_widget_tapping_upcoming_event
+	#Preconditions:
+	#	- Device is in Home Screen.
+	app = @sut.application(:name => 'hsapplication')
+	# - At least one upcoming event created in Calendar.
+	check_phone_date
+	check_phone_time
+	today_time_for_verification = create_calendar_event_via_calendar("not working",@day.to_i,@month.to_i,@year.to_i,@hour.to_i+2,@minute.to_i,0,0,0)
+	#-Calendar widget is added to Home Screen.
+	#Not adding calendar widget, if it already exists there
+	if not(app.test_object_exists?("HbWidget",{:name => 'CalendarWidget'})) then
+		#add calendar widget to home screen
+		app.HbIconItem(:iconName => 'qtg_mono_applications_all').tap
+		add_calendar_widget_to_homescreen(app,'AppListButton')
+	end	
+	#Step 1:Tap on the upcoming event in Calendar widget.
+	app.HbTextItem( :text => today_time_for_verification ).tap
+	#Step 1 Expected: 
+	#- Calendar agenda view is opened.
+	#- The date is same as the event date.
+	cal_app = @sut.application(:name => 'calendar')
+	verify(){cal_app.CalenAgendaView( :name => 'agendaView' )}
+	#Error in SW, cannot verify date yet, since shows no date
+	#postactions
+	delete_calendar_events_via_UI
   end
   
   ##############################################################################################################################################

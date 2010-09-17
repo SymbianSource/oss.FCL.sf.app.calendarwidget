@@ -333,6 +333,9 @@ void ContentLayoutHandler::hideLabels()
     setLabelVisible(mUpperLabelLong, false);
     setLabelVisible(mLowerLabel, false);
     setLabelVisible(mReminderLabel, false);
+    mReminderVisible = false;
+    mUpperLabelLongVisible = false;
+    mUpperLabelShortVisible = false;
 }
 
 /*
@@ -880,7 +883,7 @@ int ContentLayoutHandler::checkOverlappingEvents(ulong id, int& aEndEventIndex)
     AgendaEntry entry = mAgendaEntryList.at(id);
     for (int i = id + 1; i < mAgendaEntryList.count(); i++) {
         if ((entry.startTime() <= mAgendaEntryList.at(i).startTime())
-            && (entry.endTime() >= mAgendaEntryList.at(i).startTime())
+            && (entry.endTime() > mAgendaEntryList.at(i).startTime())
             && entry.startTime().date() == mAgendaEntryList.at(i).startTime().date()) {
             aEndEventIndex = i;
             overlappingEvents++;
@@ -1109,9 +1112,12 @@ void ContentLayoutHandler::setLabelVisible(HbLabel* label, bool visible)
         // Make sure all three labels exists
         if (mUpperLabelShort && mUpperLabelLong && mReminderLabel) {
             int currentState = 0;
-            currentState += (mReminderLabel->isVisible() ? 1 : 0);
-            currentState += (mUpperLabelLong->isVisible()  ? 2 : 0);
-            currentState += (mUpperLabelShort->isVisible() ? 4 : 0);
+            bool reminderVisible = mReminderLabel->isVisible();
+            bool upperLabelLong = mUpperLabelLong->isVisible();
+            bool upperLabelShort = mUpperLabelShort->isVisible();
+            currentState += (/*mReminderLabel->isVisible()*/mReminderVisible ? 1 : 0);
+            currentState += (/*mUpperLabelLong->isVisible()*/mUpperLabelLongVisible  ? 2 : 0);
+            currentState += (/*mUpperLabelShort->isVisible()*/mUpperLabelShortVisible ? 4 : 0);
 
             int action = -1;
             if (label == mReminderLabel) {
@@ -1134,6 +1140,9 @@ void ContentLayoutHandler::setLabelVisible(HbLabel* label, bool visible)
             int newState = stateTransition[currentState * 4 + action];
             
             if (newState != currentState) {
+                mReminderVisible = newState & 1;
+                mUpperLabelLongVisible = newState & 2;
+                mUpperLabelShortVisible = newState & 4;
                 mReminderLabel->setVisible(newState & 1);
                 mUpperLabelLong->setVisible(newState & 2);
                 mUpperLabelShort->setVisible(newState & 4);
@@ -1172,10 +1181,7 @@ bool ContentLayoutHandler::isOneDayAllDayEvent(AgendaEntry entry)
 
 void ContentLayoutHandler::setLowerLabelOverlapping(int numberOfEvents)
 {
-    QString trString(hbTrId("txt_calendar_widget_v_dblist_val_l1_events"));
-    // TODO: Remove the replacing of the parameter, once localized
-    //       string is corrected.
-    setLabelText(mLowerLabel, trString.replace("%Ln", "%L1").arg(numberOfEvents));
+    setLabelText(mLowerLabel, hbTrId("txt_calendar_widget_v_dblist_val_l1_events", numberOfEvents));
 }
 
 //from DateIconLayoutHandler

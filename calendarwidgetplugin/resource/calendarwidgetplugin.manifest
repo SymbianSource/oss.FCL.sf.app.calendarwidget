@@ -1,8 +1,10 @@
-<?xml version="1.0" encoding="utf-8"?>
-<widgetprovider>
-    <widget library="calendarwidgetplugin"
-            uri="calendarwidgetplugin"
-            title="CalendarWidget"
-            iconuri="qtg_large_calendar.png"
-            description="Shows calendar events."/>
-</widgetprovider>
+<?xml version="1.0" encoding="UTF-8" ?>
+<hswidgetmanifest>
+    <uri>calendarwidgetplugin</uri>
+    <title>CalendarWidget</title>
+    <description>Shows calendar events.</description>
+    <icon>qtg_large_calendar.png</icon>
+    <previewimage>calendarwidgetpreview.png</previewimage>
+    <hidden>false</hidden>
+    <servicexml>calendarwidgetplugin.xml</servicexml>
+</hswidgetmanifest>

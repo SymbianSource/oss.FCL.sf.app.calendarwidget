@@ -432,6 +432,11 @@ private: // data
     AgendaUtil* mAgendaUtil;
     QList<AgendaEntry> mAgendaEntryList;
     XQSettingsManager* mCalendarKeyManager;
+    
+    //label visibility
+    bool mReminderVisible;
+    bool mUpperLabelLongVisible;
+    bool mUpperLabelShortVisible;
 
     // State variables
     bool mDateHighlightActive;
