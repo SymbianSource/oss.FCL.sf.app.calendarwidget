@@ -212,6 +212,7 @@ private: // data
     Q_DISABLE_COPY(CalendarWidget)
     QTranslator* mCommonTranslator;
     bool mWidgetLoaded;
+    bool mIsTapAndHold;
     
     //For documentation purpose
     ContentLayoutHandler* mContent;

@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <hswidgetmanifest>
     <uri>calendarwidgetplugin</uri>
-    <title>CalendarWidget</title>
-    <description>Shows calendar events.</description>
-    <icon>qtg_large_calendar.png</icon>
-    <previewimage>calendarwidgetpreview.png</previewimage>
+    <title>txt_long_caption_calendar_widget</title>
+    <description>txt_calendar_widget_v_dblist_applib</description>
+    <icon>qtg_large_calendar</icon>
+    <previewimage>qtg_graf_hswidget_preview_calendar.svg</previewimage>
     <hidden>false</hidden>
     <servicexml>calendarwidgetplugin.xml</servicexml>
+    <translationfile>calwidget</translationfile>
 </hswidgetmanifest>

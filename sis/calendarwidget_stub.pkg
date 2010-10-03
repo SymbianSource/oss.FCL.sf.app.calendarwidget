@@ -19,7 +19,7 @@
 &EN
 
 ; Standard SIS file header
-#{"calendarwidget"},(0x2002C35A),1,0,0
+#{"calendarwidget"},(0x2002C35A),1,0,0, TYPE=SA
 
 ; Non-localised vendor name
 :"Nokia Corporation"

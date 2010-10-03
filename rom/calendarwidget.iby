@@ -26,6 +26,7 @@ file=ABI_DIR\BUILD_DIR\calendarwidgetplugin.dll    SHARED_LIB_DIR\calendarwidget
 data=ZPRIVATE\20022F35\import\widgetregistry\2002C35A\calendarwidgetplugin.qtplugin   private\20022f35\import\widgetregistry\2002C35A\calendarwidgetplugin.qtplugin
 data=ZPRIVATE\20022F35\import\widgetregistry\2002C35A\calendarwidgetplugin.manifest   private\20022f35\import\widgetregistry\2002C35A\calendarwidgetplugin.manifest
 data=ZPRIVATE\20022F35\import\widgetregistry\2002C35A\qtg_large_calendar.png          private\20022f35\import\widgetregistry\2002C35A\qtg_large_calendar.png
+data=ZPRIVATE\20022F35\import\widgetregistry\2002C35A\qtg_graf_hswidget_preview_calendar.svg      private\20022f35\import\widgetregistry\2002C35A\qtg_graf_hswidget_preview_calendar.svg
 data=ZPRIVATE\20022F35\import\widgetregistry\2002C35A\calendarwidgetplugin.xml        private\20022f35\import\widgetregistry\2002C35A\calendarwidgetplugin.xml
 
 data=DATAZ_\resource\gestures.xml    \resource\gestures.xml

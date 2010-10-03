@@ -70,7 +70,7 @@ symbian: {
     qtplugins.path = $$PLUGIN_SUBDIR
     qtplugins.sources += qmakepluginstubs/$${TARGET}.qtplugin
     qtplugins.sources += resource/$${TARGET}.manifest
-    qtplugins.sources += resource/qtg_large_calendar.png
+    qtplugins.sources += resource/qtg_graf_hswidget_preview_calendar.svg
      
     for(qtplugin, qtplugins.sources):BLD_INF_RULES.prj_exports += "./$$qtplugin z:$$qtplugins.path/$$basename(qtplugin)"
     BLD_INF_RULES.prj_exports += "./resource/$${TARGET}.s60xml z:$$PLUGIN_SUBDIR/$${TARGET}.xml"
@@ -82,6 +82,5 @@ symbian: {
 win32 {
     # add platfrom API for windows
     TRANSLATIONS = loc/calendarwidget_en.ts 
-    INCLUDEPATH += ../../../../homescreensrv/homescreensrv_plat/hswidgetmodel_api
     PLUGIN_SUBDIR = /hsresources/import/widgetregistry/2002C35A
 }

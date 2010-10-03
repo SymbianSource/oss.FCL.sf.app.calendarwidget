@@ -115,7 +115,8 @@ ContentLayoutHandler::ContentLayoutHandler()
           mAgendaUtil(0),
           mCalendarKeyManager(0),
           mDateHighlightActive(0),
-          mContentHighlightActive(0)
+          mContentHighlightActive(0),
+          mDateObserver(0)
 {
     LOGS("ContentLayoutHandler::ContentLayoutHandler");
 
@@ -139,7 +140,9 @@ ContentLayoutHandler::~ContentLayoutHandler()
         KCalPubSubCategory.iUid, key);
     mCalendarKeyManager->stopMonitoring(calendarKey);
     delete mCalendarKeyManager;
-    delete mDateObserver;
+    if( mDateObserver ) {
+        delete mDateObserver;   
+    }
 }
 
 /*

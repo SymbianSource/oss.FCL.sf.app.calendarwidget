@@ -64,10 +64,8 @@ CalendarWidget::CalendarWidget(QGraphicsItem* parent, Qt::WindowFlags flags)
 {
     LOGS("CalendarWidget::CalendarWidget");
     grabGesture(Qt::TapGesture);
-    grabGesture(Qt::PanGesture);
-    grabGesture(Qt::PinchGesture);
-    grabGesture(Qt::SwipeGesture);
     mWidgetLoaded = false;
+    mIsTapAndHold = false;
 }
 
 /*
@@ -238,16 +236,6 @@ bool CalendarWidget::event(QEvent * event)
         emit themeChanged();
     }
     
-    if (eventType == QEvent::Gesture) {
-        QGestureEvent* gesture = static_cast<QGestureEvent*>(event);
-        QList<QGesture*> gestureList = gesture->gestures();
-        for (int i = 0; i < gestureList.count(); i++) {
-            int type = gestureList.at(i)->gestureType();
-            qDebug() << "type = " << type;
-        }
-        gestureEvent(static_cast<QGestureEvent*>(event));
-        consumed = true;
-    }
 
     return consumed;
 }
@@ -335,53 +323,35 @@ void CalendarWidget::gestureEvent(QGestureEvent *event)
         switch(tap->state()) {
             case Qt::GestureStarted:
                 emit mousePressed(posFromScene);
+                mIsTapAndHold = false;
                 LOGS("CalendarWidget::gestureEvent => gestureStarted");
                 break;
             case Qt::GestureUpdated:
                 LOGS("CalendarWidget::gestureEvent => gestureUpdated");
+                emit mouseReleased();
+                mIsTapAndHold = true;
                 break;
             case Qt::GestureFinished:
-                emit tapGesture(posFromScene);
-                emit mouseReleased();
                 LOGS("CalendarWidget::gestureEvent => gestureFinished");
+                if( !mIsTapAndHold ) {
+                    /*workaround for calendar launch: calendar should launched only in case of tap
+                     *this seems to be a bug in the framework as the tap
+                     *gesture should be canceled and not finished when a tap and hold gesture is started   
+                     */
+                    emit tapGesture(posFromScene);   
+                }
+                //highlight should be turned off
+                emit mouseReleased();
                 break;
             case Qt::GestureCanceled:
                 LOGS("CalendarWidget::gestureEvent => gestureCanceled");
+                emit mouseReleased();
                 break;
             default:
                 break;
         }
     }
     
-    if(QPanGesture *pan = (QPanGesture*)event->gesture(Qt::PanGesture)) {
-        switch (pan->state()) {
-            case Qt::GestureFinished:
-                emit mouseReleased();
-                break;
-            default:
-                break;
-        }
-    }
-        
-    if (QSwipeGesture *swipe = (QSwipeGesture*)event->gesture(Qt::SwipeGesture)) {
-        switch (swipe->state()) {
-            case Qt::GestureFinished:
-                emit mouseReleased();
-                break;
-            default:
-                break;
-        }
-    }
-
-    if (QPinchGesture *pinch = (QPinchGesture*)event->gesture(Qt::PinchGesture)) {
-        switch (pinch->state()) {
-            case Qt::GestureFinished:
-                emit mouseReleased();
-                break;
-            default:
-                break;
-        }
-    }
 }
 
 /*
